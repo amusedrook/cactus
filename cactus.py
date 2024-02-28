@@ -83,8 +83,8 @@ class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
                     logging.info(f'CactusProbeEndstopWrapper trigger_position: {trigger_pos}')
                 except:
                     logging.info(f'CactusProbeEndstopWrapper trigger_position: N/A')
-            for endstop in rail.get_endstop():
-                logging.info(f'CactusProbeEndstopWrapper endstop: {endstop}')
+            for endstops in rail.get_endstops():
+                logging.info(f'CactusProbeEndstopWrapper endstops: {endstops}')
 
     def _handle_home_rails_end(self, homing_state, rails):
         logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_end"')
