@@ -85,7 +85,7 @@ class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
     def _handle_home_rails_end(self, homing_state, rails):
         logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_end"')
         logging.info(f'CactusProbeEndstopWrapper homing_state axes: {homing_state.get_axes()}')
-        or rail in rails:
+        for rail in rails:
             for stepper in rail.get_steppers():
                 stepper_name = stepper.get_name()
                 logging.info(f'CactusProbeEndstopWrapper stepper: "{stepper_name}"')
