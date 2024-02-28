@@ -4,12 +4,13 @@
 
 import logging
 
-import probe
+# import probe
 # from . import probe
 # from probe import PrinterProbe, ProbeEndstopWrapper
+from ./probe import PrinterProbe, ProbeEndstopWrapper
 
 
-class CactusPrinterProbe(probe.PrinterProbe):
+class CactusPrinterProbe(PrinterProbe):
     """(Override) Inductive probe"""
 
     def __init__(self, config, mcu_probe):
@@ -17,7 +18,7 @@ class CactusPrinterProbe(probe.PrinterProbe):
         super().__init__(config, mcu_probe)
 
 
-class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
+class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
     """(Override) Endstop wrapper that enables probe specific features"""
 
     def __init__(self, config):
