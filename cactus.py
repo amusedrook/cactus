@@ -71,7 +71,6 @@ class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
         logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_begin"')
         logging.info(f'CactusProbeEndstopWrapper homing_state axes: {homing_state.get_axes()}')
         for rail in rails:
-            #logging.info(f'CactusProbeEndstopWrapper rail steppers: "{rail.get_steppers()}"')
             for stepper in rail.get_steppers():
                 stepper_name = stepper.get_name()
                 logging.info(f'CactusProbeEndstopWrapper stepper: "{stepper_name}"')
@@ -86,6 +85,15 @@ class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
     def _handle_home_rails_end(self, homing_state, rails):
         logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_end"')
         logging.info(f'CactusProbeEndstopWrapper homing_state axes: {homing_state.get_axes()}')
+        or rail in rails:
+            for stepper in rail.get_steppers():
+                stepper_name = stepper.get_name()
+                logging.info(f'CactusProbeEndstopWrapper stepper: "{stepper_name}"')
+                try:
+                    trigger_pos = homing_state.get_trigger_position(stepper_name)
+                    logging.info(f'CactusProbeEndstopWrapper trigger_position: {trigger_pos}')
+                except:
+                    logging.info(f'CactusProbeEndstopWrapper trigger_position: N/A')
         #logging.info(f'CactusProbeEndstopWrapper rails steppers: "{rails.get_steppers()}"')
         #logging.info(f'CactusProbeEndstopWrapper rails endstopt: "{rails.get_endstops()}"')
 
