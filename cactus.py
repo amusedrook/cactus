@@ -28,7 +28,8 @@ class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
         self.printer.register_event_handler("klippy:connect", self._handle_connect)
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.printer.register_event_handler(
-            "stepper:sync_mcu_position", self._handle_sync_mcu_position
+            "stepper:sync_mcu_position",
+            self._handle_sync_mcu_position,
         )
         self.printer.register_event_handler(
             "homing:home_rails_begin", self._handle_home_rails_begin
@@ -88,4 +89,7 @@ class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
 
 def load_config(config):
     """This is a docstring"""
-    return CactusPrinterProbe(config, CactusProbeEndstopWrapper(config))
+    # return CactusPrinterProbe(config, CactusProbeEndstopWrapper(config))
+    cactus_probe = CactusPrinterProbe(config, CactusProbeEndstopWrapper(config))
+    config.get_printer().add_object("cactus", cactus_probe)
+    return cactus_probe
