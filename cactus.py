@@ -7,7 +7,7 @@ import logging
 # import probe
 # from . import probe
 # from probe import PrinterProbe, ProbeEndstopWrapper
-from ./probe import PrinterProbe, ProbeEndstopWrapper
+from .probe import PrinterProbe, ProbeEndstopWrapper
 
 
 class CactusPrinterProbe(PrinterProbe):
