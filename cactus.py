@@ -28,10 +28,10 @@ class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
         )
         self.printer.register_event_handler("klippy:connect", self._handle_connect)
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
-        self.printer.register_event_handler(
-            "stepper:sync_mcu_position",
-            self._handle_sync_mcu_position,
-        )
+        #self.printer.register_event_handler(
+        #    "stepper:sync_mcu_position",
+        #    self._handle_sync_mcu_position,
+        #)
         self.printer.register_event_handler(
             "homing:home_rails_begin", self._handle_home_rails_begin
         )
@@ -63,9 +63,9 @@ class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
     def _handle_ready(self):
         logging.info('CactusProbeEndstopWrapper event: "klippy:ready"')
 
-    def _handle_sync_mcu_position(self, stepper):
-        logging.info('CactusProbeEndstopWrapper event: "stepper:sync_mcu_position"')
-        logging.info('CactusProbeEndstopWrapper stepper: '+stepper.get_name())
+    #def _handle_sync_mcu_position(self, stepper):
+    #    logging.info('CactusProbeEndstopWrapper event: "stepper:sync_mcu_position"')
+    #    logging.info('CactusProbeEndstopWrapper stepper: '+stepper.get_name())
 
     def _handle_home_rails_begin(self):
         logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_begin"')
