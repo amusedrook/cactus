@@ -91,5 +91,5 @@ def load_config(config):
     """This is a docstring"""
     # return CactusPrinterProbe(config, CactusProbeEndstopWrapper(config))
     cactus_probe = CactusPrinterProbe(config, CactusProbeEndstopWrapper(config))
-    config.get_printer().add_object("cactus", cactus_probe)
+    config.get_printer().add_object("probe", cactus_probe)
     return cactus_probe
