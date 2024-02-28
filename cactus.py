@@ -69,13 +69,15 @@ class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
 
     def _handle_home_rails_begin(self, homing_state, rails):
         logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_begin"')
-        logging.info(f'CactusProbeEndstopWrapper homing_state: "{homing_state}"')
-        logging.info(f'CactusProbeEndstopWrapper rails: "{rails}"')
+        logging.info(f'CactusProbeEndstopWrapper homing_state axes: {homing_state.get_axes()}')
+        logging.info(f'CactusProbeEndstopWrapper rails steppers: "{rails.get_steppers()}"')
+        logging.info(f'CactusProbeEndstopWrapper rails endstopt: "{rails.get_endstops()}"')
 
     def _handle_home_rails_end(self, homing_state, rails):
         logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_end"')
-        logging.info(f'CactusProbeEndstopWrapper homing_state: "{homing_state}"')
-        logging.info(f'CactusProbeEndstopWrapper rails: "{rails}"')
+        logging.info(f'CactusProbeEndstopWrapper homing_state axes: {homing_state.get_axes()}')
+        logging.info(f'CactusProbeEndstopWrapper rails steppers: "{rails.get_steppers()}"')
+        logging.info(f'CactusProbeEndstopWrapper rails endstopt: "{rails.get_endstops()}"')
 
     def _handle_homing_move_begin(self, homing_move):
         logging.info('CactusProbeEndstopWrapper event: "homing:homing_move_begin"')
