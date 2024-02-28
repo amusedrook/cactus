@@ -36,8 +36,11 @@ class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
             "homing:home_rails_begin", self._handle_home_rails_begin
         )
         self.printer.register_event_handler(
-            "homing:home_rails_end", self._handle_home_rails_end
+            "homing:home_rails_end", self._handle_home_rails_begin
         )
+        #self.printer.register_event_handler(
+        #    "homing:home_rails_end", self._handle_home_rails_end
+        #)
         self.printer.register_event_handler(
             "homing:homing_move_begin", self._handle_homing_move_begin
         )
@@ -71,6 +74,7 @@ class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
         logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_begin"')
         logging.info(f'CactusProbeEndstopWrapper homing_state axes: {homing_state.get_axes()}')
         for rail in rails:
+            logging.info(f'CactusProbeEndstopWrapper rail: {rail.get_name()}')
             for stepper in rail.get_steppers():
                 stepper_name = stepper.get_name()
                 logging.info(f'CactusProbeEndstopWrapper stepper: "{stepper_name}"')
@@ -79,8 +83,8 @@ class CactusProbeEndstopWrapper(probe.ProbeEndstopWrapper):
                     logging.info(f'CactusProbeEndstopWrapper trigger_position: {trigger_pos}')
                 except:
                     logging.info(f'CactusProbeEndstopWrapper trigger_position: N/A')
-        #logging.info(f'CactusProbeEndstopWrapper rails steppers: "{rails.get_steppers()}"')
-        #logging.info(f'CactusProbeEndstopWrapper rails endstopt: "{rails.get_endstops()}"')
+            for endstop in rail.get_endstop():
+                logging.info(f'CactusProbeEndstopWrapper endstop: {endstop}')
 
     def _handle_home_rails_end(self, homing_state, rails):
         logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_end"')
