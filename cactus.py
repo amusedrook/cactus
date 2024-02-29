@@ -38,7 +38,7 @@ class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
             "homing:home_rails_begin", self._handle_home_rails_begin
         )
         self.printer.register_event_handler(
-            "homing:home_rails_end", self._handle_home_rails_begin
+            "homing:home_rails_end", self._handle_home_rails_end
         )
         # self.printer.register_event_handler(
         #    "homing:home_rails_end", self._handle_home_rails_end
@@ -102,11 +102,11 @@ class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
 
     def _handle_home_rails_begin(self, homing_state, rails):
         logging.info('CactusPEW event: "homing:home_rails_begin"')
-        self._handle_homing_rails(homing_state, rails)
+        self._handle_home_rails(homing_state, rails)
 
     def _handle_home_rails_end(self, homing_state, rails):
         logging.info('CactusPEW event: "homing:home_rails_end"')
-        self._handle_homing_rails(homing_state, rails)
+        self._handle_home_rails(homing_state, rails)
 
     def _handle_homing_move_begin(self, homing_move):
         logging.info('CactusPEW event: "homing:homing_move_begin"')
