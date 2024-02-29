@@ -22,8 +22,9 @@ class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
     """(Override) Endstop wrapper that enables probe specific features"""
 
     def __init__(self, config):
-        logging.info("CactusProbeEndstopWrapper:")
+        logging.info("CactusPEW: init")
         super().__init__(config)
+        self.gcode = self.printer.lookup_object("gcode")
         self.printer.register_event_handler(
             "klippy:mcu_identify", self._handle_mcu_identify
         )
@@ -50,79 +51,68 @@ class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
         )
 
     def _handle_mcu_identify(self):
-        logging.info('CactusProbeEndstopWrapper event: "klippy:mcu_identify"')
+        logging.info('CactusPEW event: "klippy:mcu_identify"')
 
     def _handle_connect(self):
-        logging.info('CactusProbeEndstopWrapper event: "klippy:connect"')
+        logging.info('CactusPEW event: "klippy:connect"')
 
     def _handle_ready(self):
-        logging.info('CactusProbeEndstopWrapper event: "klippy:ready"')
+        logging.info('CactusPEW event: "klippy:ready"')
 
     def _handle_sync_mcu_position(self, stepper):
-        logging.info('CactusProbeEndstopWrapper event: "stepper:sync_mcu_position"')
-        logging.info("CactusProbeEndstopWrapper stepper: " + stepper.get_name())
+        logging.info('CactusPEW event: "stepper:sync_mcu_position"')
+        self.gcode.respond_info('CactusPEW event: "stepper:sync_mcu_position"')
+        logging.info("CactusPEW stepper: " + stepper.get_name())
+        self.gcode.respond_info("CactusPEW stepper: " + stepper.get_name())
 
-    def _handle_home_rails_begin(self, homing_state, rails):
-        # TODO: This method is doing double-duty BEWARE!
-        logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_begin"')
-        logging.info(
-            f"CactusProbeEndstopWrapper homing_state axes: {homing_state.get_axes()}"
-        )
+    def _handle_home_rails(self, homing_state, rails):
+        logging.info(f"CactusPEW homing_state axes: {homing_state.get_axes()}")
         for rail in rails:
             # Returns name of stepper (for cartesian - unknown for others)
-            logging.info(f"CactusProbeEndstopWrapper rail: {rail.get_name()}")
+            logging.info(f"CactusPEW rail: {rail.get_name()}")
             for stepper in rail.get_steppers():
                 # Returns name of stepper (same name as above for cartesian)
                 # Possibly corexy/delta do not have one stepper per rail?
                 stepper_name = stepper.get_name()
-                logging.info(f'CactusProbeEndstopWrapper stepper: "{stepper_name}"')
+                logging.info(f'CactusPEW stepper: "{stepper_name}"')
                 try:
                     # No idea what unit this value is in, nor what it represents
-                    # x: -3256
-                    # y: -2850
-                    # z: -16545
+                    # Values fluctuate slightly
+                    # x: -3256 (125mm): 3256/125 = 26.048 3dp
+                    # y: -2850 (110mm): 2850/110 = 25.909 3dp
+                    # z: -16545 (40mm?): 16545/40 = 413.625 3dp
+                    #
                     trigger_pos = homing_state.get_trigger_position(stepper_name)
-                    logging.info(
-                        f"CactusProbeEndstopWrapper trigger_position: {trigger_pos}"
-                    )
+                    logging.info(f"CactusPEW trigger_position: {trigger_pos}")
                 except:
-                    logging.info("CactusProbeEndstopWrapper trigger_position: N/A")
+                    logging.info("CactusPEW trigger_position: N/A")
             for endstops in rail.get_endstops():
-                logging.info(f"CactusProbeEndstopWrapper endstops: {endstops}")
+                logging.info(f"CactusPEW endstops: {endstops}")
                 try:
-                    # TODO: Would like to get this value, but it's being illusive.
+                    # Endstop position equals z_offset, which is distance between
+                    # nozzle and bed-surface at probe's trigger point.
+                    # i.e. "self.z_offset" in the "PrinterProbe" class or
+                    # self.position_endstop in the "ProbeEndstopWrapper" class
+                    # (parent of this class).
+                    # ...so this is a silly way to get this value.
                     endstop_position = endstops[0].get_position_endstop()
-                    logging.info(
-                        f"CactusProbeEndstopWrapper endstop position: {endstop_position}"
-                    )
+                    logging.info(f"CactusPEW endstop position: {endstop_position}")
                 except:
                     pass
 
+    def _handle_home_rails_begin(self, homing_state, rails):
+        logging.info('CactusPEW event: "homing:home_rails_begin"')
+        self._handle_homing_rails(homing_state, rails)
+
     def _handle_home_rails_end(self, homing_state, rails):
-        # TODO: This is currently not used.
-        logging.info('CactusProbeEndstopWrapper event: "homing:home_rails_end"')
-        logging.info(
-            f"CactusProbeEndstopWrapper homing_state axes: {homing_state.get_axes()}"
-        )
-        for rail in rails:
-            for stepper in rail.get_steppers():
-                stepper_name = stepper.get_name()
-                logging.info(f'CactusProbeEndstopWrapper stepper: "{stepper_name}"')
-                try:
-                    trigger_pos = homing_state.get_trigger_position(stepper_name)
-                    logging.info(
-                        f"CactusProbeEndstopWrapper trigger_position: {trigger_pos}"
-                    )
-                except:
-                    logging.info("CactusProbeEndstopWrapper trigger_position: N/A")
-        # logging.info(f'CactusProbeEndstopWrapper rails steppers: "{rails.get_steppers()}"')
-        # logging.info(f'CactusProbeEndstopWrapper rails endstopt: "{rails.get_endstops()}"')
+        logging.info('CactusPEW event: "homing:home_rails_end"')
+        self._handle_homing_rails(homing_state, rails)
 
     def _handle_homing_move_begin(self, homing_move):
-        logging.info('CactusProbeEndstopWrapper event: "homing:homing_move_begin"')
+        logging.info('CactusPEW event: "homing:homing_move_begin"')
 
     def _handle_homing_move_end(self, homing_move):
-        logging.info('CactusProbeEndstopWrapper event: "homing:homing_move_end"')
+        logging.info('CactusPEW event: "homing:homing_move_end"')
 
 
 def load_config(config):
