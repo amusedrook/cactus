@@ -17,6 +17,12 @@ class CactusPrinterProbe(PrinterProbe):
         logging.info("CactusPrinterProbe:")
         super().__init__(config, mcu_probe)
 
+        def _probe(self, speed):
+            self.gcode.respond_info("CactusPE _probe: override")
+            pos = super()._probe(speed)
+            self.gcode.respond_info(f"CactusPE _probe position: {pos}")
+            return pos
+
 
 class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
     """(Override) Endstop wrapper that enables probe specific features"""
@@ -48,48 +54,50 @@ class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
         )
 
     def _handle_mcu_identify(self):
-        logging.info('CactusPEW event: "klippy:mcu_identify"')
+        logging.info("CactusPEW event: klippy:mcu_identify")
 
     def _handle_connect(self):
-        logging.info('CactusPEW event: "klippy:connect"')
+        logging.info("CactusPEW event: klippy:connect")
 
     def _handle_ready(self):
-        logging.info('CactusPEW event: "klippy:ready"')
+        logging.info("CactusPEW event: klippy:ready")
 
     def _handle_sync_mcu_position(self, stepper):
-        #logging.info('CactusPEW event: "stepper:sync_mcu_position"')
         self.gcode.respond_info('CactusPEW event: "stepper:sync_mcu_position"')
-        #logging.info("CactusPEW stepper: " + stepper.get_name())
         self.gcode.respond_info("CactusPEW stepper: " + stepper.get_name())
 
     def _handle_home_rails(self, homing_state, rails):
-        #logging.info(f"CactusPEW homing_state axes: {homing_state.get_axes()}")
-        self.gcode.respond_info(f"CactusPEW - homing_state axes: {homing_state.get_axes()}")
+        self.gcode.respond_info(
+            f"CactusPEW - homing_state axes: {homing_state.get_axes()}"
+        )
         for rail in rails:
             # Returns name of stepper (for cartesian - unknown for others)
-            #logging.info(f"CactusPEW rail: {rail.get_name()}")
             self.gcode.respond_info(f"CactusPEW - rail: {rail.get_name()}")
             for stepper in rail.get_steppers():
                 # Returns name of stepper (same name as above for cartesian)
                 # Possibly corexy/delta do not have one stepper per rail?
                 stepper_name = stepper.get_name()
-                #logging.info(f'CactusPEW stepper: "{stepper_name}"')
                 self.gcode.respond_info(f"CactusPEW - stepper: {stepper_name}")
                 try:
-                    # No idea what unit this value is in, nor what it represents
+                    # 1. No idea what unit this value is in, nor what it represents
                     # Values fluctuate slightly
                     # x: -3256 (125mm): 3256/125 = 26.048 3dp
                     # y: -2850 (110mm): 2850/110 = 25.909 3dp
                     # z: -16545 (40mm?): 16545/40 = 413.625 3dp
                     #
+                    # 2. Appears to be how far the rail moved before the endstop
+                    # was triggerd. But still do not kno what unit; steps? microsteps?
+                    # x axis currently configured with:
+                    # - microstepping = 4
+                    # - full steps = 200
+                    # It's microsteps. Probably. Which makes sense.
                     trigger_pos = homing_state.get_trigger_position(stepper_name)
-                    #logging.info(f"CactusPEW trigger_position: {trigger_pos}")
-                    self.gcode.respond_info(f"CactusPEW - trigger_position: {trigger_pos}")
+                    self.gcode.respond_info(
+                        f"CactusPEW - trigger_position: {trigger_pos}"
+                    )
                 except:
-                    #logging.info("CactusPEW trigger_position: N/A")
                     self.gcode.respond_info("CactusPEW - trigger_position: N/A")
             for endstops in rail.get_endstops():
-                #logging.info(f"CactusPEW endstops: {endstops}")
                 self.gcode.respond_info(f"CactusPEW - endstops: {endstops}")
                 try:
                     # Endstop position equals z_offset, which is distance between
@@ -99,32 +107,31 @@ class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
                     # (parent of this class).
                     # ...so this is a silly way to get this value.
                     endstop_position = endstops[0].get_position_endstop()
-                    #logging.info(f"CactusPEW endstop position: {endstop_position}")
-                    self.gcode.respond_info(f"CactusPEW - endstop_position: {endstop_position}")
+                    self.gcode.respond_info(
+                        f"CactusPEW - endstop_position: {endstop_position}"
+                    )
                 except:
                     pass
 
     def _handle_home_rails_begin(self, homing_state, rails):
-        #logging.info('CactusPEW event: "homing:home_rails_begin"')
         self.gcode.respond_info("CactusPEW event: homing:home_rails_begin")
         self._handle_home_rails(homing_state, rails)
 
     def _handle_home_rails_end(self, homing_state, rails):
-        #logging.info('CactusPEW event: "homing:home_rails_end"')
         self.gcode.respond_info("CactusPEW event: homing:home_rails_end")
         self._handle_home_rails(homing_state, rails)
 
     def _handle_homing_move(self, homing_move):
+        # Not sure there's much I can do with a HomingMove object.
+        # Possible to use these events?
         self.gcode.respond_info(f"CactusPEW - homing_move: {homing_move}")
 
     def _handle_homing_move_begin(self, homing_move):
         self.gcode.respond_info("CactusPEW event: homing:homing_move_begin")
-        #logging.info('CactusPEW event: "homing:homing_move_begin"')
         self._handle_homing_move(homing_move)
 
     def _handle_homing_move_end(self, homing_move):
         self.gcode.respond_info("CactusPEW event: homing:homing_move_end")
-        #logging.info('CactusPEW event: "homing:homing_move_end"')
         self._handle_homing_move(homing_move)
 
 
