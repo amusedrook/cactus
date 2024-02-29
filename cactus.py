@@ -17,11 +17,11 @@ class CactusPrinterProbe(PrinterProbe):
         logging.info("CactusPrinterProbe:")
         super().__init__(config, mcu_probe)
 
-        def _probe(self, speed):
-            self.gcode.respond_info("CactusPE _probe: override")
-            pos = super()._probe(speed)
-            self.gcode.respond_info(f"CactusPE _probe position: {pos}")
-            return pos
+    def _probe(self, speed):
+        self.gcode.respond_info("CactusPE _probe: override")
+        pos = super()._probe(speed)
+        self.gcode.respond_info(f"CactusPE _probe position: {pos}")
+        return pos
 
 
 class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
