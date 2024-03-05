@@ -30,23 +30,16 @@ class CactusOffsetHelper:
             raise config.error(
                 "Cactus: {CFG_CALIB_POINTS} must include a minimum of two data-points"
             )
-        c_points_decon = [line.split(",", 1) for line in c_points_lines if line.strip()]
+        c_points_decon = [
+            line.split(",", 1) for line in c_points_lines if line.strip()
+        ]
         # Check all lines comprise temp/offset pairs
         for chunk in c_points_decon:
             if len(chunk) != 2:
                 raise config.error(
                     "Cactus: {CFG_CALIB_POINTS} must comprise temperature/offset pairs"
                 )
-        # Dictionary of temp/offset pairs
-        # Could enforce its order with: dict(sorted(d.items()))
-        self.points_raw_data = {
-            int(p[0].strip()): float(p[1].strip()) for p in c_points_decon
-        }
-        self.points_raw_keys = list(self.points_raw_data.keys())
-        self.points_raw_keys.sort()
-        # Need to enforce some limits
-        # Cannot offset more than..?
-        # First point must be 0mm offset? At room-temperature?
+        c_points_data = {int(p[0].strip()): float(p[1].strip()) for p in c_points_decon}
 
 
 # Inhert from PrinterSensorGeneric
