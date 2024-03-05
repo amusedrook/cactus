@@ -4,33 +4,100 @@
 
 import logging
 
-# import probe
-# from . import probe
-# from probe import PrinterProbe, ProbeEndstopWrapper
 from .probe import PrinterProbe, ProbeEndstopWrapper
+# from .probe import PrinterProbe, ProbeEndstopWrapper, HINT_TIMEOUT
+
+KELVIN_TO_CELSIUS = -273.15
+
+
+# CactusPrinterSensor class based on PrinterSensorGeneric
+# PrinterSensorGeneric - Copyright (C) 2019  Kevin O'Connor <kevin@koconnor.net>
+# https://github.com/Klipper3d/klipper/raw/master/klippy/extras/temperature_sensor.py
+# Perhaps I can just inherit from PrinterSensorGeneric?
+# Possible problem with how the parent class derives its name
+class CactusPrinterSensor:
+    """Thermistor for inductive z-probe themperature compensation"""
+
+    def __init__(self, config):
+        self.printer = config.get_printer()
+        self.name = f"{config.get_name().replace(' ', '_')}_temp_sensor"
+        pheaters = self.printer.load_object(config, "heaters")
+        self.sensor = pheaters.setup_sensor(config)
+        self.min_temp = config.getfloat(
+            "min_temp", KELVIN_TO_CELSIUS, minval=KELVIN_TO_CELSIUS
+        )
+        self.max_temp = config.getfloat("max_temp", 99999999.9, above=self.min_temp)
+        self.sensor.setup_minmax(self.min_temp, self.max_temp)
+        self.sensor.setup_callback(self.temperature_callback)
+        pheaters.register_sensor(config, self)
+        self.last_temp = 0.0
+        self.measured_min = 99999999.0
+        self.measured_max = 0.0
+
+    @classmethod
+    def create_safe(cls, config):
+        """Check sensor_type and sensor_pin exist before attempting creation"""
+        if not (config.get("sensor_type", None) and config.get("sensor_pin", None)):
+            return None
+        return cls(config)
+
+    def temperature_callback(self, read_time, temp):
+        """Update minimum and maximum recorded temperature values"""
+        self.last_temp = temp
+        if temp:
+            self.measured_min = min(self.measured_min, temp)
+            self.measured_max = max(self.measured_max, temp)
+
+    def get_temp(self, eventtime):
+        """Sensor's last recorded temperature"""
+        return self.last_temp, 0.0
+
+    def stats(self, eventtime):
+        """Retrieve sensor's name and last recorded temperature"""
+        # return False, "%s: temp=%.1f" % (self.name, self.last_temp)
+        return False, f"{self.name}: {self.last_temp}"
+
+    def get_status(self, eventtime):
+        """Dict of sensor's current state"""
+        return {
+            "temperature": round(self.last_temp, 2),
+            "measured_min_temp": round(self.measured_min, 2),
+            "measured_max_temp": round(self.measured_max, 2),
+        }
 
 
 class CactusPrinterProbe(PrinterProbe):
-    """(Override) Inductive probe"""
+    """Inductive z probe with thermal z variablity compensation"""
 
     def __init__(self, config, mcu_probe):
-        logging.info("CactusPrinterProbe:")
+        logging.info("CactusPP: init")
         super().__init__(config, mcu_probe)
 
     def _probe(self, speed):
-        self.gcode.respond_info("CactusPE _probe: override")
+        """Override PrinterProbe's internal '_probe' method to account for z variability"""
+        self.gcode.respond_info("CactusPP _probe: override")
+        self.printer.send_event("cactus:probing_move_begin", self)
         pos = super()._probe(speed)
-        self.gcode.respond_info(f"CactusPE _probe position: {pos}")
+        # TODO:
+        # 1. Get temperature
+        # 2. Get associated offset
+        # 3. Apply offset
+        self.gcode.respond_info(f"CactusPP _probe position: {pos}")
+        self.printer.send_event("cactus:probing_move_end", self)
+        # 3b. Apply offsets here?
         return pos
 
 
 class CactusProbeEndstopWrapper(ProbeEndstopWrapper):
-    """(Override) Endstop wrapper that enables probe specific features"""
+    """Inductive probe endstop-wrapper with thermal z variablity compensation"""
 
     def __init__(self, config):
-        logging.info("CactusPEW: init")
         super().__init__(config)
         self.gcode = self.printer.lookup_object("gcode")
+        self.sensor = CactusPrinterSensor.create_safe(config)
+        if config.get("sensor_type", None) is None:
+            raise config.error("Cactus: sensor_type and sensor_pin are required fields")
+        # Event handlers
         self.printer.register_event_handler(
             "klippy:mcu_identify", self._handle_mcu_identify
         )
