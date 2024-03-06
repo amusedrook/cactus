@@ -34,6 +34,7 @@ BLOB_02 = (
     + "    100, -2.00\n"
 )
 
+# Do not use
 BLOB_03 = (
     "    21, 0.00\n"
     + "    40, 0.15\n"
@@ -47,7 +48,7 @@ BLOB_03 = (
     + "    100, 2.00\n"
 )
 
-# As 03, but without crazy 100 degree point
+# As 02, but without crazy 100 degree point
 BLOB_04 = (
     "    21, 0.00\n"
     + "    40, -0.15\n"
@@ -73,24 +74,49 @@ BLOB_05 = (
 )
 
 
+def func_poly1d(x, *p):
+    """poly1d"""
+    return np.poly1d(p)(x)
+
+
+def func_a(x, a, b):
+    """ax + b"""
+    return a * np.power(x, 1) + b
+
+
 def func_b(x, a, b, c):
     """ax^2 + bx + c"""
-    return a * x**2 + b * x + c
+    return a * np.power(x, 2) + b * np.power(x, 1) + c
 
 
 def func_c(x, a, b, c, d):
     """ax^3 + bx^2 + cx + d"""
-    return a * x**3 + b * x**2 + c * x + d
+    return a * np.power(x, 3) + b * np.power(x, 2) + c * np.power(x, 1) + d
 
 
 def func_d(x, a, b, c, d, e):
     """ax^4 + bx^3 + cx^2 + dx + e"""
-    return a * x**4 + b * x**3 + c * x**2 + d * x + e
+    # return a * x**4 + b * x**3 + c * x**2 + d * x + e
+    return (
+        a * np.power(x, 4)
+        + b * np.power(x, 3)
+        + c * np.power(x, 2)
+        + d * np.power(x, 1)
+        + e
+    )
 
 
 def func_e(x, a, b, c, d, e, f):
     """ax^5 + bx^4 + cx^3 + dx^2 + ex + f"""
-    return a * x**5 + b * x**4 + c * x**3 + d * x**2 + e * x + f
+    # return a * x**5 + b * x**4 + c * x**3 + d * x**2 + e * x + f
+    return (
+        a * np.power(x, 5)
+        + b * np.power(x, 4)
+        + c * np.power(x, 3)
+        + d * np.power(x, 2)
+        + e * np.power(x, 1)
+        + f
+    )
 
 
 def process_blob(blob):
@@ -127,17 +153,27 @@ def process_blob(blob):
     print("offsets:")
     print(offsets)
     print("----------------")
-    func_test = func_c
+    func_test = func_poly1d
     plt.plot(temps, offsets, "o", label="data")
-    # Give more wight to the first point (need it fixed-ish)
+    # Give more weight to the first point (need it fixed-ish)
+    # https://stackoverflow.com/questions/15191088/how-to-do-a-polynomial-fit-with-fixed-points
     sigma = np.ones(len(temps))
     sigma[[0]] = 0.01
     # params, _ = curve_fit(func_test, temps, offsets)
-    params, _ = curve_fit(func_test, temps, offsets, sigma=sigma)
+    # params, _ = curve_fit(func_test, temps, offsets, sigma=sigma)
+    # params, _ = curve_fit(func_test, temps, offsets, (0, 0, 0), sigma=sigma)
+    degrees = (0,) * 4
+    params, _ = curve_fit(func_test, temps, offsets, degrees, sigma=sigma)
     temps_new = np.linspace(temps[0], temps[-1], 50)
     offsets_new = func_test(temps_new, *params)
     plt.plot(temps_new, offsets_new, "b-", label="mike")
     print(params)
+    # https://stackoverflow.com/questions/19189362/getting-the-r-squared-value-using-curve-fit
+    residuals = offsets - func_test(temps, *params)
+    ss_res = np.sum(residuals**2)
+    ss_tot = np.sum((offsets - np.mean(offsets)) ** 2)
+    r_squared = 1 - (ss_res / ss_tot)
+    print(r_squared)
     plt.show()
 
 
