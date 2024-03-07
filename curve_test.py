@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Shut up Pylint"""
+"""Experiments: Load configurations, and fit curves to data."""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,6 +10,9 @@ from scipy.optimize import curve_fit
 # "2" is linear, anything more than "MAX" should be interpolated pont-by-point
 P_DEG_MIN = 2
 P_DEG_MAX = 4
+
+# Find least complex polynomial which matches matches to at least this r-squared
+R2_MIN = 0.995
 
 # https://github.com/Klipper3d/klipper/blob/048baeb5b6e0664c2b575e161d3c3cbda01ecc54/klippy/extras/pinda2.py
 # Minus a suspicious 100°C measurement
@@ -112,43 +115,7 @@ def func_poly1d(x, *p):
     return np.poly1d(p)(x)
 
 
-# The following "func_X" functions are redundant. Replaced with above.
-# def func_a(x, a, b):
-#    """a*x + b"""
-#    return a * np.power(x, 1) + b
-#
-#
-# def func_b(x, a, b, c):
-#    """a*x^2 + b*x + c"""
-#    return a * np.power(x, 2) + b * np.power(x, 1) + c
-#
-#
-# def func_c(x, a, b, c, d):
-#    """a*x^3 + b*x^2 + c*x + d"""
-#    return a * np.power(x, 3) + b * np.power(x, 2) + c * np.power(x, 1) + d
-#
-#
-# def func_d(x, a, b, c, d, e):
-#    """a*x^4 + b*x^3 + c*x^2 + d*x + e"""
-#    return (
-#        a * np.power(x, 4)
-#        + b * np.power(x, 3)
-#        + c * np.power(x, 2)
-#        + d * np.power(x, 1)
-#        + e
-#    )
-#
-#
-# def func_e(x, a, b, c, d, e, f):
-#    """a*x^5 + b*x^4 + c*x^3 + d*x^2 + e*x + f"""
-#    return (
-#        a * np.power(x, 5)
-#        + b * np.power(x, 4)
-#        + c * np.power(x, 3)
-#        + d * np.power(x, 2)
-#        + e * np.power(x, 1)
-#        + f
-#    )
+func_test = func_poly1d
 
 
 def process_blob(blob):
@@ -185,26 +152,16 @@ def process_blob(blob):
     print("offsets:")
     print(offsets)
     print("----------------")
-    func_test = func_poly1d
+    # func_test = func_poly1d
     plt.plot(temps, offsets, "o", label="data")
     # Give more weight to the first point (need it fixed-ish)
     # https://stackoverflow.com/questions/15191088/
     # how-to-do-a-polynomial-fit-with-fixed-points
     sigma = np.ones(len(temps))
     sigma[[0]] = 0.01
-    # params, _ = curve_fit(func_test, temps, offsets)
-    # params, _ = curve_fit(func_test, temps, offsets, sigma=sigma)
-    # params, _ = curve_fit(func_test, temps, offsets, (0, 0, 0), sigma=sigma)
-    degrees = (0,) * 3
-    # This gets W0632 - unbalanced-tuple-unpacking
-    # params, _ = curve_fit(func_test, temps, offsets, degrees, sigma=sigma)
-    # This gets W0612 - Unused variable 'remaining_vals'
-    # params, *remaining_vals = curve_fit(func_test, temps, offsets, degrees, sigma=sigma)
-    # This is acceptible, but less than clear
-    # params = curve_fit(func_test, temps, offsets, degrees, sigma=sigma)[0]
-    # ...but is this really any better? Pylint says 'yes' [shrugs]
-    cf_return = curve_fit(func_test, temps, offsets, degrees, sigma=sigma)
-    params = cf_return[0]
+    terms = 3
+    initial = (0,) * terms
+    params, *_ = curve_fit(func_test, temps, offsets, initial, sigma=sigma)
     temps_new = np.linspace(temps[0], temps[-1], 50)
     offsets_new = func_test(temps_new, *params)
     plt.plot(temps_new, offsets_new, "b-", label="mike")
@@ -219,4 +176,4 @@ def process_blob(blob):
     plt.show()
 
 
-process_blob(BLOB_04)
+process_blob(BLOB_13)
