@@ -4,5 +4,5 @@ python
 cactusprobe/__pycache__
 archive
 experiments
-probe.py
-homing.py
+/probe.py
+/homing.py
