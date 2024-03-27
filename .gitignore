@@ -1,6 +1,7 @@
 .ruff_cache
 .mypy_cache
 python
+cactusprobe/__pycache__
 archive
 experiments
 probe.py
