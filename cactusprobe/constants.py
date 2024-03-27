@@ -66,3 +66,7 @@ class ErrorMessages:
         "\nCalibration data must be in the form of temperature/offset pairs"
         + "Please ensure your calibration data is in the format 'temp', 'offset'."
     )
+    invalid_calibration_data: str = (
+        "Cannot generate interpolated offsets because calibration "
+        + "data does not parse as 'valid'"
+    )

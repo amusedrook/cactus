@@ -4,6 +4,9 @@
 
 from typing import Self
 
+import numpy as np
+from scipy.optimize import curve_fit
+
 from .constants import ErrorMessages as emsg
 from .constants import Defaults as defaults
 
@@ -87,17 +90,13 @@ class CalibrationData:
         ]
         return cls.create_from_list(data_as_list)
 
-    def temps_as_list(self) -> list[float] | None:
+    def temps_as_list(self) -> list[float]:
         """List of all the 'x' (temperature) calibrated data-points."""
-        if self._valid is True:
-            return list(self._calibration_points.keys())
-        return None
+        return list(self._calibration_points.keys())
 
-    def offsets_as_list(self) -> list[float] | None:
+    def offsets_as_list(self) -> list[float]:
         """List of all the 'y' (offset) calibrated data-points."""
-        if self._valid is True:
-            return list(self._calibration_points.values())
-        return None
+        return list(self._calibration_points.values())
 
     def set_ro(self) -> None:
         """Set this set of calibration-points to 'read only'."""
@@ -110,6 +109,73 @@ class CalibrationData:
     def is_valid(self) -> bool:
         """Do the data-poins represent a valid functioning calibration?"""
         return self._valid
+
+
+class InterpolatedOffsets:
+    """Interpolate between discrete calibrated data-points"""
+
+    _calibration_temps: list[float] = []
+    _calibration_offsets: list[float] = []
+    _calibrated_t_min: float | None = None
+    _calibrated_t_max: float | None = None
+    _parameters: np.ndarray = np.empty(0)
+    _poly: bool = False
+
+    def __init__(self, calibration_data: CalibrationData) -> None:
+        if not calibration_data.is_valid():
+            raise RuntimeError(emsg.invalid_calibration_data)
+        self._calibration_temps = calibration_data.temps_as_list()
+        self._calibration_offsets = calibration_data.offsets_as_list()
+        self._calibrated_t_min = min(self._calibration_temps)
+        self._calibrated_t_max = max(self._calibration_temps)
+        sigma = np.ones(len(self._calibration_temps))
+        sigma[[0]] = 0.01
+        parameters: np.ndarray = np.empty(0)
+        p_term_max = min(defaults.max_poly_terms, len(self._calibration_temps) - 1)
+        if p_term_max >= defaults.min_poly_terms:
+            for terms in range(defaults.min_poly_terms, p_term_max + 1):
+                initial = (0,) * terms
+                parameters, *_ = curve_fit(
+                    self._poly1d,
+                    self._calibration_temps,
+                    self._calibration_offsets,
+                    initial,
+                    sigma=sigma,
+                )
+                residuals = self._calibration_offsets - self._poly1d(
+                    self._calibration_temps,
+                    *parameters,
+                )
+                ss_res = np.sum(residuals**2)
+                ss_tot = np.sum(
+                    (self._calibration_offsets - np.mean(self._calibration_offsets))
+                    ** 2
+                )
+                r_squared: float = 1 - (ss_res / ss_tot)
+                print(f"\tr_squared: {r_squared}")
+                if r_squared >= defaults.min_r2:
+                    print(f"Found acceptible match at r2: {r_squared}")
+                    print(f"Parameters: {parameters}")
+                    self._parameters = parameters
+                    self._poly = True
+                    break
+
+    def _poly1d(self, x, *p) -> float | list[float]:
+        """poly1d"""
+        return np.poly1d(p)(x)
+
+    def _linear(self, x) -> float | list[float]:
+        """Linear interpolation between calibration points (fallback)."""
+        return np.interp(x, self._calibration_temps, self._calibration_offsets)
+
+    def get_offset(self, temp) -> float:
+        """Return temperature-induced offset interpolated from the calibration data."""
+        temp_bracketed: float = max(
+            min(temp, self._calibrated_t_max), self._calibrated_t_min
+        )
+        if self._poly is True:
+            return self._poly1d(temp_bracketed, *self._parameters)
+        return self._linear(temp_bracketed)
 
 
 def _test() -> None:
