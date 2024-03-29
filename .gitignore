@@ -1,8 +1,8 @@
 .ruff_cache
 .mypy_cache
-python
-cactusprobe/__pycache__
-archive
-experiments
+/python
+__pycache__
+/archive
+/experiments
 /probe.py
 /homing.py

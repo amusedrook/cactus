@@ -198,53 +198,6 @@ class InterpolatedOffsets:
         """Offset range (min, max)."""
         return (self._min_calibrated_offset, self._max_calibrated_offset)
 
-def _test_calibrationdata() -> None:
-    """CalibrationData class tests."""
-    # python -m cactusprobe.probe
-    import traceback
-
-    print("Testing CalibrationData...")
-    test_data_as_dict: dict[float, float] = {0.0: 5.0, 10.0: 15.0, 20.0: 25.0}
-    test_data_as_list: list[tuple[float, float]] = [
-        (0.0, 5.0),
-        (10.0, 15.0),
-        (20.0, 25.0),
-    ]
-    test_data_as_str: str = "\t0.0, 5.0\n\t10.0, 15.0\n\t20.0, 25.0"
-    try:
-        _ = CalibrationData.create_empty()
-    except Exception as exc:
-        traceback.print_exception(exc)
-    try:
-        _ = CalibrationData.create_from_dict(test_data_as_dict)
-    except Exception as exc:
-        traceback.print_exception(exc)
-    try:
-        _ = CalibrationData.create_from_list(test_data_as_list)
-    except Exception as exc:
-        traceback.print_exception(exc)
-    try:
-        _ = CalibrationData.create_from_str(test_data_as_str)
-    except Exception as exc:
-        traceback.print_exception(exc)
-    try:
-        _ = CalibrationData.create_from_str(defaults.calibrated_offsets)
-    except Exception as exc:
-        traceback.print_exception(exc)
-    print("\tDONE!")
-
-
-def _test_interpolatedoffsets() -> None:
-    """InterpolatedOffsets class test."""
-    print("Testing InterpolatedOffsets...")
-    test_cd: CalibrationData = CalibrationData.create_from_str(
-        defaults.calibrated_offsets
-    )
-    test_ios: InterpolatedOffsets = InterpolatedOffsets(test_cd)
-    print(f"Temp range: {test_ios.get_temp_range()}")
-    print("\tDONE!")
-
 
 if __name__ == "__main__":
-    _test_calibrationdata()
-    _test_interpolatedoffsets()
+    print("This module has no standalone functionality.")

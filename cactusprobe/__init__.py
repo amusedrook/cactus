@@ -5,7 +5,8 @@ Impliments correction for thermally-induced measurement offset
 of the V2 P.I.N.D.A. inductive probe for the klipper printer firmware.
 """
 
-from .probe import CalibrationData
+#from .probe import CalibrationData
+#import .offsets
 
 if __name__ == "__main__":
     print("Running as script")
