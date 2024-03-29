@@ -3,6 +3,7 @@
 """Interpolate probe measurement offsets from discrete temperature/offset points."""
 
 from typing import Self
+from dataclasses import dataclass, asdict
 
 import numpy as np
 import numpy.typing as npt
@@ -112,15 +113,22 @@ class CalibrationData:
         return self._valid
 
 
+@dataclass
+class Range:
+    """Verbose methhod to store max and min values."""
+
+    __slots__ = ("min", "max")
+    min: float
+    max: float
+
+
 class InterpolatedOffsets:
     """Interpolate between discrete calibrated data-points"""
 
     _calibration_temps: npt.NDArray = np.empty(0)
     _calibration_offsets: npt.NDArray = np.empty(0)
-    _min_calibrated_temp: float = 0.0
-    _max_calibrated_temp: float = 0.0
-    _min_calibrated_offset: float = 0.0
-    _max_calibrated_offset: float = 0.0
+    _calibrated_temp: Range
+    _calibrated_offset: Range
     _parameters: npt.NDArray = np.empty(0)
     _poly: bool = False
 
@@ -129,10 +137,14 @@ class InterpolatedOffsets:
             raise RuntimeError(emsg.invalid_calibration_data)
         self._calibration_temps = np.array(cd.temps_as_list())
         self._calibration_offsets = np.array(cd.offsets_as_list())
-        self._min_calibrated_temp = np.min(self._calibration_temps).item()
-        self._max_calibrated_temp = np.max(self._calibration_temps).item()
-        self._min_calibrated_offset = np.min(self._calibration_offsets).item()
-        self._max_calibrated_offset = np.max(self._calibration_offsets).item()
+        self._calibrated_temp = Range(
+            min=np.min(self._calibration_temps).item(),
+            max=np.max(self._calibration_temps).item(),
+        )
+        self._calibrated_offset = Range(
+            min=np.min(self._calibration_offsets).item(),
+            max=np.max(self._calibration_offsets).item(),
+        )
         sigma: npt.NDArray = np.ones(len(self._calibration_temps))
         sigma[[0]] = 0.01
         parameters: npt.NDArray = np.empty(0)
@@ -184,20 +196,28 @@ class InterpolatedOffsets:
     def get_offset(self, temp: float) -> float:
         """Return temperature-induced offset interpolated from the calibration data."""
         temp_bookended: np.float64 = np.float64(
-            max(min(temp, self._max_calibrated_temp), self._min_calibrated_temp)
+            max(min(temp, self._calibrated_temp.max), self._calibrated_temp.min)
         )
         if self._poly is True:
             return round(self._poly1d(temp_bookended, *self._parameters).item(), 3)
         return round(self._linear(temp_bookended).item(), 3)
 
     def get_temp_range(self) -> tuple[float, float]:
-        """Temperature range (min, max) over which the offsets are valid."""
-        return (self._min_calibrated_temp, self._max_calibrated_temp)
+        """Temperature range (min, max) over which the offsets are valid (as tuple)."""
+        return (self._calibrated_temp.min, self._calibrated_temp.max)
+
+    def get_temp_range_as_dict(self) -> dict[str, float]:
+        """Temperature range (min, max) over which the offsets are valid (as dict)."""
+        return asdict(self._calibrated_temp)
 
     def get_offset_range(self) -> tuple[float, float]:
-        """Offset range (min, max)."""
-        return (self._min_calibrated_offset, self._max_calibrated_offset)
+        """Offset range (min, max) as tuple."""
+        return (self._calibrated_offset.min, self._calibrated_offset.max)
+
+    def get_offset_range_as_dict(self) -> dict[str, float]:
+        """Offset range (min, max) as dict."""
+        return asdict(self._calibrated_offset)
 
 
 if __name__ == "__main__":
-    print("This module has no standalone functionality.")
+    print("Module has no standalone functionality.")
