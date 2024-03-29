@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""P.I.N.D.A.v2 style inductive z-probe with temperature compensation."""
+"""Interpolate probe measurement offsets from discrete temperature/offset points."""
 
 from typing import Self
 
