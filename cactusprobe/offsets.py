@@ -7,7 +7,7 @@ from dataclasses import dataclass, asdict
 
 import numpy as np
 import numpy.typing as npt
-from scipy.optimize import curve_fit
+import numpy.polynomial as npp
 
 from .constants import ErrorMessages as emsg
 from .constants import Defaults as defaults
@@ -45,7 +45,8 @@ class CalibrationData:
         for key, value in data_as_dict.items():
             if not isinstance(key, float | int) or not isinstance(value, float | int):
                 raise TypeError(emsg.wrong_data_type)
-            if float(key) in calibration_data_parsed.keys():
+            # if float(key) in calibration_data_parsed.keys():
+            if float(key) in calibration_data_parsed:
                 # This should not be possible
                 raise RuntimeError(emsg.duplicate_calibration_point)
             calibration_data_parsed[float(key)] = float(value)
@@ -72,7 +73,8 @@ class CalibrationData:
                 point[1], float | int
             ):
                 raise TypeError(emsg.wrong_data_type)
-            if float(point[0]) in calibration_data_parsed.keys():
+            # if float(point[0]) in calibration_data_parsed.keys():
+            if float(point[0]) in calibration_data_parsed:
                 # This should not be possible
                 raise RuntimeError(emsg.duplicate_calibration_point)
             calibration_data_parsed[float(point[0])] = float(point[1])
@@ -129,7 +131,7 @@ class InterpolatedOffsets:
     _calibration_offsets: npt.NDArray = np.empty(0)
     _calibrated_temp: Range
     _calibrated_offset: Range
-    _parameters: npt.NDArray = np.empty(0)
+    _calibrated_curve: npp.Polynomial
     _poly: bool = False
 
     def __init__(self, cd: CalibrationData) -> None:
@@ -145,25 +147,33 @@ class InterpolatedOffsets:
             min=np.min(self._calibration_offsets).item(),
             max=np.max(self._calibration_offsets).item(),
         )
+        # scipy curve_fit uses 'sigma', where numpy Plynomial uses 'w' (weighting)
+        # 'w' seems to be effectivly the inverse of sigma.
+        # some discussion of deprecating numpy's 'w' in favour of using
+        # the same nomecalature as scipy.
         sigma: npt.NDArray = np.ones(len(self._calibration_temps))
         sigma[[0]] = 0.01
-        parameters: npt.NDArray = np.empty(0)
+        weights: npt.NDArray = np.empty(0)
+        for s in sigma:
+            weights = np.append(weights, 1 / (s**1))
+        print(sigma)
+        print(weights)
         max_poly_terms: int = min(
             defaults.max_poly_terms, len(self._calibration_temps) - 1
         )
         if max_poly_terms >= defaults.min_poly_terms:
             for terms in range(defaults.min_poly_terms, max_poly_terms + 1):
-                initial: npt.NDArray = np.zeros(terms)
-                parameters, *_ = curve_fit(
-                    self._poly1d,
+                # test_curve = npp.Polynomial.fit(
+                #    self._calibration_temps, self._calibration_offsets, terms - 1
+                # )
+                test_curve = npp.Polynomial.fit(
                     self._calibration_temps,
                     self._calibration_offsets,
-                    initial,
-                    sigma=sigma,
+                    terms - 1,
+                    w=weights,
                 )
-                residuals: npt.NDArray = self._calibration_offsets - self._poly1d(
-                    self._calibration_temps,
-                    *parameters,
+                residuals: npt.NDArray = self._calibration_offsets - test_curve(
+                    self._calibration_temps
                 )
                 ss_res: np.float64 = np.sum(residuals**2)
                 ss_tot: np.float64 = np.sum(
@@ -172,35 +182,39 @@ class InterpolatedOffsets:
                 )
                 r_squared: float = 1.0 - (ss_res.item() / ss_tot.item())
                 if r_squared >= defaults.min_r2:
+                    self._calibrated_curve = test_curve
                     print(f"Found acceptible match at r2: {r_squared}")
-                    print(f"Parameters: {parameters}")
                     print("Calibration offsets:\n" + f"{self._calibration_offsets}")
                     print(
                         "Calculated offsets:\n"
-                        + f"{self._poly1d(self._calibration_temps,*parameters)}"
+                        + f"{self._interpolate_poly(self._calibration_temps)}"
                     )
-                    self._parameters = parameters
                     self._poly = True
                     break
 
-    def _poly1d(
-        self, x: npt.NDArray | np.float64, *p: npt.NDArray
+    def _interpolate_linear(
+        self, x: npt.NDArray | np.float64
     ) -> npt.NDArray | np.float64:
-        """poly1d"""
-        return np.poly1d(p)(x)
-
-    def _linear(self, x: npt.NDArray | np.float64) -> npt.NDArray | np.float64:
         """Linear interpolation between calibration points (fallback)."""
         return np.interp(x, self._calibration_temps, self._calibration_offsets)
 
-    def get_offset(self, temp: float) -> float:
-        """Return temperature-induced offset interpolated from the calibration data."""
-        temp_bookended: np.float64 = np.float64(
+    def _interpolate_poly(
+        self, x: npt.NDArray | np.float64
+    ) -> npt.NDArray | np.float64:
+        """extrapolated offset using calibrated polynomial curve."""
+        return self._calibrated_curve(x)
+
+    def _clamp(self, temp: float) -> np.float64:
+        """Clamp the imput temperature to the calibrated range."""
+        return np.float64(
             max(min(temp, self._calibrated_temp.max), self._calibrated_temp.min)
         )
+
+    def get_offset(self, temp: float) -> float:
+        """Return temperature-induced offset interpolated from the calibration data."""
         if self._poly is True:
-            return round(self._poly1d(temp_bookended, *self._parameters).item(), 3)
-        return round(self._linear(temp_bookended).item(), 3)
+            return round(self._interpolate_poly(self._clamp(temp)).item(), 3)
+        return round(self._interpolate_linear(self._clamp(temp)).item(), 3)
 
     def get_temp_range(self) -> tuple[float, float]:
         """Temperature range (min, max) over which the offsets are valid (as tuple)."""
