@@ -16,16 +16,14 @@ from .constants import Defaults as defaults
 class CalibrationData:
     """Parse and store the raw calibration data."""
 
-    _calibration_points: dict[float, float]
-    _valid: bool = False
-    _writable: bool = True
-
     def __init__(
         self, calibration_points: dict[float, float], direct_init: bool = True
     ) -> None:
         if direct_init:
             raise RuntimeError(emsg.use_alt_init)
-        self._calibration_points = calibration_points
+        self._valid: bool = False
+        self._writable: bool = True
+        self._calibration_points: dict[float, float] = calibration_points
         if len(calibration_points) > defaults.min_calibration_points:
             self._valid = True
 
@@ -127,23 +125,17 @@ class Range:
 class InterpolatedOffsets:
     """Interpolate between discrete calibrated data-points"""
 
-    _calibration_temps: npt.NDArray = np.empty(0)
-    _calibration_offsets: npt.NDArray = np.empty(0)
-    _calibrated_temp: Range
-    _calibrated_offset: Range
-    _calibrated_curve: npp.Polynomial
-    _poly: bool = False
-
     def __init__(self, cd: CalibrationData) -> None:
         if not cd.is_valid():
             raise RuntimeError(emsg.invalid_calibration_data)
-        self._calibration_temps = np.array(cd.temps_as_list())
-        self._calibration_offsets = np.array(cd.offsets_as_list())
-        self._calibrated_temp = Range(
+        self._calibrated_curve: npp.Polynomial | None = None
+        self._calibration_temps: npt.NDArray = np.array(cd.temps_as_list())
+        self._calibration_offsets: npt.NDArray = np.array(cd.offsets_as_list())
+        self._calibrated_temp: Range = Range(
             min=np.min(self._calibration_temps).item(),
             max=np.max(self._calibration_temps).item(),
         )
-        self._calibrated_offset = Range(
+        self._calibrated_offset: Range = Range(
             min=np.min(self._calibration_offsets).item(),
             max=np.max(self._calibration_offsets).item(),
         )
@@ -187,9 +179,8 @@ class InterpolatedOffsets:
                     print("Calibration offsets:\n" + f"{self._calibration_offsets}")
                     print(
                         "Calculated offsets:\n"
-                        + f"{self._interpolate_poly(self._calibration_temps)}"
+                        + f"{self._calibrated_curve(self._calibration_temps)}"
                     )
-                    self._poly = True
                     break
 
     def _interpolate_linear(
@@ -197,12 +188,6 @@ class InterpolatedOffsets:
     ) -> npt.NDArray | np.float64:
         """Linear interpolation between calibration points (fallback)."""
         return np.interp(x, self._calibration_temps, self._calibration_offsets)
-
-    def _interpolate_poly(
-        self, x: npt.NDArray | np.float64
-    ) -> npt.NDArray | np.float64:
-        """extrapolated offset using calibrated polynomial curve."""
-        return self._calibrated_curve(x)
 
     def _clamp(self, temp: float) -> np.float64:
         """Clamp the imput temperature to the calibrated range."""
@@ -212,8 +197,8 @@ class InterpolatedOffsets:
 
     def get_offset(self, temp: float) -> float:
         """Return temperature-induced offset interpolated from the calibration data."""
-        if self._poly is True:
-            return round(self._interpolate_poly(self._clamp(temp)).item(), 3)
+        if self._calibrated_curve is not None:
+            return round(self._calibrated_curve(self._clamp(temp)).item(), 3)
         return round(self._interpolate_linear(self._clamp(temp)).item(), 3)
 
     def get_temp_range(self) -> tuple[float, float]:
