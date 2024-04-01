@@ -4,6 +4,7 @@
 
 from typing import Self
 from dataclasses import dataclass, asdict
+from functools import partial
 
 import numpy as np
 import numpy.typing as npt
@@ -131,6 +132,9 @@ class InterpolatedOffsets:
         self._calibrated_curve: npp.Polynomial | None = None
         self._calibration_temps: npt.NDArray = np.array(cd.temps_as_list())
         self._calibration_offsets: npt.NDArray = np.array(cd.offsets_as_list())
+        self._interpolate_linear = partial(
+            np.interp, xp=self._calibration_temps, fp=self._calibration_offsets
+        )
         self._calibrated_temp: Range = Range(
             min=np.min(self._calibration_temps).item(),
             max=np.max(self._calibration_temps).item(),
@@ -182,12 +186,6 @@ class InterpolatedOffsets:
                         + f"{self._calibrated_curve(self._calibration_temps)}"
                     )
                     break
-
-    def _interpolate_linear(
-        self, x: npt.NDArray | np.float64
-    ) -> npt.NDArray | np.float64:
-        """Linear interpolation between calibration points (fallback)."""
-        return np.interp(x, self._calibration_temps, self._calibration_offsets)
 
     def _clamp(self, temp: float) -> np.float64:
         """Clamp the imput temperature to the calibrated range."""
