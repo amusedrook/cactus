@@ -50,27 +50,27 @@ class TestCalibrationData(unittest.TestCase):
     ]
     data_as_str: str = "\t0.0, 5.0\n\t10.0, 15.0\n\t20.0, 25.0"
 
-    def test_direct_init(self) -> None:
+    def test_01_direct_init(self) -> None:
         """Direct accss to __init__ should raise an exception."""
         self.assertRaises(RuntimeError, cdat, {})
 
-    def test_create_empty(self) -> None:
+    def test_02_create_empty(self) -> None:
         """Test CalibrationData.create_empty alt' init method."""
         _ = cdat.create_empty()
 
-    def test_create_from_dict(self) -> None:
+    def test_03_create_from_dict(self) -> None:
         """Test CalibrationData.create_from_dict alt' init method."""
         _ = cdat.create_from_dict(self.data_as_dict)
 
-    def test_create_from_list(self) -> None:
+    def test_04_create_from_list(self) -> None:
         """Test CalibrationData.create_from_list alt' init method."""
         _ = cdat.create_from_list(self.data_as_list)
 
-    def test_create_from_str(self) -> None:
+    def test_05_create_from_str(self) -> None:
         """Test CalibrationData.create_from_str alt' init method."""
         _ = cdat.create_from_str(self.data_as_str)
 
-    def test_create_from_default(self) -> None:
+    def test_06_create_from_default(self) -> None:
         """Test CalibrationData.create_from_str alt' init method using Defaults."""
         _ = cdat.create_from_str(Defaults.calibrated_offsets)
 
@@ -78,13 +78,42 @@ class TestCalibrationData(unittest.TestCase):
 class TestInterpolatedOffsets(unittest.TestCase):
     """InterpolatedOffsets tests."""
 
-    test_default_cd: cdat
-    test_offsets: intoffs
+    def setUp(self) -> None:
+        self._cd: cdat = cdat.create_from_str(Defaults.calibrated_offsets)
+        self._offsets: intoffs = intoffs(self._cd)
 
-    def test_init(self) -> None:
-        """Test init of InterpolatedOffsets using CalibrationData created from Defaults."""
-        self.test_default_cd = cdat.create_from_str(Defaults.calibrated_offsets)
-        self.test_offsets = intoffs(self.test_default_cd)
+    def test_01_temp_import(self) -> None:
+        """Test calibration temperatures are correctly imported."""
+        self.assertCountEqual(
+            self._offsets._calibration_temps.tolist(), self._cd.temps_as_list()
+        )
+
+    def test_02_offset_import(self) -> None:
+        """Test calibration offsetss are correctly imported."""
+        self.assertCountEqual(
+            self._offsets._calibration_offsets.tolist(), self._cd.offsets_as_list()
+        )
+
+    def test_03_linear_c_points(self) -> None:
+        """Test linear method returns correct offsets for calibrated temperatures."""
+        calculated_offsets_linear = self._offsets._interpolate_linear(
+            self._offsets._calibration_temps
+        )
+        self.assertCountEqual(
+            calculated_offsets_linear, self._offsets._calibration_offsets
+        )
+
+    def test_04_poly_c_points(self) -> None:
+        """Test poly function method correct offsets for calibrated temperatures."""
+        calculated_offsets_poly = self._offsets._calibrated_curve(
+            self._offsets._calibration_temps
+        )
+        for a, b in zip(
+            self._offsets._calibration_offsets,
+            self._offsets._calibrated_curve(self._offsets._calibration_temps),
+        ):
+            # self.assertGreater(1-(a-b)**2,Defaults.min_r2)
+            self.assertGreater(1-abs(a-b),Defaults.min_r2)
 
 
 if __name__ == "__main__":

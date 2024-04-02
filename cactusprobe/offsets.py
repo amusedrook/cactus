@@ -152,8 +152,8 @@ class InterpolatedOffsets:
         weights: npt.NDArray = np.empty(0)
         for s in sigma:
             weights = np.append(weights, 1 / (s**1))
-        print(sigma)
-        print(weights)
+        # print(sigma)
+        # print(weights)
         max_poly_terms: int = min(
             defaults.max_poly_terms, len(self._calibration_temps) - 1
         )
@@ -179,12 +179,6 @@ class InterpolatedOffsets:
                 r_squared: float = 1.0 - (ss_res.item() / ss_tot.item())
                 if r_squared >= defaults.min_r2:
                     self._calibrated_curve = test_curve
-                    print(f"Found acceptible match at r2: {r_squared}")
-                    print("Calibration offsets:\n" + f"{self._calibration_offsets}")
-                    print(
-                        "Calculated offsets:\n"
-                        + f"{self._calibrated_curve(self._calibration_temps)}"
-                    )
                     break
 
     def _clamp(self, temp: float) -> np.float64:
