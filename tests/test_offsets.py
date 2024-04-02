@@ -4,6 +4,9 @@
 
 import unittest
 
+import numpy as np
+import matplotlib.pyplot as mplt
+
 from cactusprobe.constants import Defaults
 from cactusprobe.offsets import CalibrationData as cdat
 from cactusprobe.offsets import InterpolatedOffsets as intoffs
@@ -105,15 +108,44 @@ class TestInterpolatedOffsets(unittest.TestCase):
 
     def test_04_poly_c_points(self) -> None:
         """Test poly function method correct offsets for calibrated temperatures."""
-        calculated_offsets_poly = self._offsets._calibrated_curve(
-            self._offsets._calibration_temps
-        )
         for a, b in zip(
             self._offsets._calibration_offsets,
             self._offsets._calibrated_curve(self._offsets._calibration_temps),
         ):
             # self.assertGreater(1-(a-b)**2,Defaults.min_r2)
-            self.assertGreater(1-abs(a-b),Defaults.min_r2)
+            self.assertGreater(1 - abs(a - b), Defaults.min_r2)
+
+    def test_05_plot_some_stuff(self) -> None:
+        """Linear and polynomial interpolations plotted with callibration points."""
+        t_min, t_max = self._offsets.get_temp_range()
+        interpolation_temps = np.linspace(t_min, t_max, 50)
+        interpolated_offsets_linear = self._offsets._interpolate_linear(
+            interpolation_temps
+        )
+        interpolated_offsets_poly = self._offsets._calibrated_curve(interpolation_temps)
+        mplt.figure(num=None, figsize=(6, 4), dpi=310, facecolor="w", edgecolor="k")
+        mplt.plot(
+            self._offsets._calibration_temps,
+            self._offsets._calibration_offsets,
+            "o",
+            color="#88c999",
+            label="Calibration points",
+        )
+        mplt.plot(
+            interpolation_temps,
+            interpolated_offsets_linear,
+            linestyle="dotted",
+            color="#c98899",
+            label="Linear interpolation",
+        )
+        mplt.plot(
+            interpolation_temps,
+            interpolated_offsets_poly,
+            linestyle="dashed",
+            color="#9988c9",
+            label="Polynomial interpolation",
+        )
+        mplt.show()
 
 
 if __name__ == "__main__":

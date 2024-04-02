@@ -8,16 +8,14 @@ class Defaults:
     """Default configuration(s) for cactusprobe package classes."""
 
     min_calibration_points: int = 3
-    min_r2: float = 0.998
+    min_r2: float = 0.98
     min_poly_terms: int = 2
     max_poly_terms: int = 5
     calibrated_offsets: str = (
-        "    30, 0.000\n"
-        + "    40, -0.015\n"
-        + "    50, -0.033\n"
-        + "    60, -0.056\n"
-        + "    70, -0.081\n"
-        + "    80, -0.111\n"
+        "    20, 0\n"
+        + "    40, -0.026\n"
+        + "    60, -0.067\n"
+        + "    80, -0.122\n"
     )
 
 
