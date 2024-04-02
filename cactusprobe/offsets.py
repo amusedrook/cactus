@@ -132,7 +132,7 @@ class InterpolatedOffsets:
         self._calibrated_curve: npp.Polynomial | None = None
         self._calibration_temps: npt.NDArray = np.array(cd.temps_as_list())
         self._calibration_offsets: npt.NDArray = np.array(cd.offsets_as_list())
-        self._interpolate_linear = partial(
+        self._interpolate_linear: partial = partial(
             np.interp, xp=self._calibration_temps, fp=self._calibration_offsets
         )
         self._calibrated_temp: Range = Range(
